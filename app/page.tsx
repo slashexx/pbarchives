@@ -1,4 +1,5 @@
 import { HeroSection } from '@/components/home/hero-section';
+import { FeaturesSection } from '@/components/home/features-section';
 
 export const metadata = {
   title: "Upload Resume | Point Blank",
@@ -16,6 +17,7 @@ export default function UploadPage() {
       </div> */}
       
       <HeroSection />
+      <FeaturesSection />
     </div>
   );
 }
