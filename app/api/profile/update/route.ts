@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         member_id: member.id,
         title: achievementTitle,
         description: '',
-        date: null,
+        date: new Date(),
       });
     }
     

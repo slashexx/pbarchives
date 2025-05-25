@@ -1,6 +1,6 @@
-import { Calendar } from "lucide-react";
-import { format } from "date-fns";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy } from "lucide-react";
 
 interface Achievement {
   id: string;
@@ -11,45 +11,40 @@ interface Achievement {
 
 interface AchievementSectionProps {
   achievements: Achievement[];
+  isEditable?: boolean;
 }
 
-export function AchievementSection({ achievements }: AchievementSectionProps) {
-  if (!achievements || achievements.length === 0) {
-    return null;
-  }
-  
+export function AchievementSection({ achievements, isEditable = false }: AchievementSectionProps) {
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle>Achievements</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-6">
-          {achievements.map((achievement) => {
-            // Format date if available
-            const formattedDate = achievement.date 
-              ? format(new Date(achievement.date), 'MMM yyyy')
-              : null;
-              
-            return (
-              <div key={achievement.id} className="space-y-2">
-                <div className="flex justify-between items-start gap-4">
-                  <h3 className="font-semibold">{achievement.title}</h3>
-                  {formattedDate && (
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Calendar className="h-3.5 w-3.5 mr-1" />
-                      {formattedDate}
-                    </div>
-                  )}
-                </div>
-                {achievement.description && (
-                  <p className="text-sm text-muted-foreground">{achievement.description}</p>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-xl font-semibold">Achievements</h2>
+        {isEditable && (
+          <Button variant="ghost" size="sm" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add Achievement
+          </Button>
+        )}
+      </div>
+      
+      <div className="space-y-4">
+        {achievements.map((achievement) => (
+          <div key={achievement.id} className="flex gap-4">
+            <div className="mt-1">
+              <Trophy className="h-5 w-5 text-green-400" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="font-medium">{achievement.title}</h3>
+              {achievement.description && (
+                <p className="text-sm text-muted-foreground">{achievement.description}</p>
+              )}
+              <p className="text-sm text-muted-foreground">
+                {new Date(achievement.date).toLocaleDateString()}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

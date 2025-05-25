@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
       // Upsert skill
       const { data: skillData, error: skillError } = await supabase
         .from('skills')
-        .upsert([{ name: skillName }], { onConflict: ['name'] })
+        .upsert([{ name: skillName }], { onConflict: 'name' })
         .select();
       if (skillError) {
         return NextResponse.json({ success: false, error: skillError.message }, { status: 500 });
