@@ -11,10 +11,22 @@ const supabase = createClient(
 );
 
 interface ParsedResumeData {
+  name: string;
+  email: string;
   skills: string[];
   domain?: string;
   year?: number;
   achievements: string[];
+  experiences: {
+    company: string;
+    role: string;
+    description: string;
+    start_date: string;
+    end_date: string | null;
+    is_current: boolean;
+  }[];
+  github_url?: string;
+  linkedin_url?: string;
 }
 
 /**
@@ -42,20 +54,39 @@ export async function analyzeWithGemini(text: string): Promise<ParsedResumeData>
 
   const prompt = `
     Analyze this resume text and extract the following information in JSON format:
-    1. A list of technical skills and technologies
-    2. The primary domain/field (e.g., Frontend Development, Data Science)
-    3. Year of study if mentioned (as a number, 1-5)
-    4. A list of notable achievements
+    1. Full name
+    2. Email address
+    3. A list of technical skills and technologies
+    4. The primary domain/field (e.g., Frontend Development, Data Science)
+    5. Graduation year (YYYY format)
+    6. A list of notable achievements
+    7. Work experiences (including company name, role, description, start date, end date, and if it's current)
+    8. GitHub URL if present
+    9. LinkedIn URL if present
 
     Resume text:
     ${text}
 
     Return ONLY a raw JSON object with these exact keys (no markdown formatting, no code blocks):
     {
+      "name": "full name",
+      "email": "email address",
       "skills": ["skill1", "skill2"],
       "domain": "domain name",
-      "year": number or null,
-      "achievements": ["achievement1", "achievement2"]
+      "graduation_year": YYYY or null,
+      "achievements": ["achievement1", "achievement2"],
+      "experiences": [
+        {
+          "company": "company name",
+          "role": "job title",
+          "description": "job description",
+          "start_date": "YYYY-MM-DD",
+          "end_date": "YYYY-MM-DD or null",
+          "is_current": boolean
+        }
+      ],
+      "github_url": "github profile url or null",
+      "linkedin_url": "linkedin profile url or null"
     }
   `;
 
@@ -68,19 +99,40 @@ export async function analyzeWithGemini(text: string): Promise<ParsedResumeData>
   try {
     const parsed = JSON.parse(jsonStr);
     console.log('Parsed response:', parsed);
+
+    // Calculate year of study based on graduation year
+    let yearOfStudy: number | undefined;
+    if (parsed.graduation_year) {
+      const currentYear = new Date().getFullYear();
+      const yearsRemaining = parsed.graduation_year - currentYear;
+      if (yearsRemaining >= 1 && yearsRemaining <= 4) {
+        yearOfStudy = yearsRemaining;
+      }
+    }
+
     return {
+      name: parsed.name || '',
+      email: parsed.email || '',
       skills: parsed.skills || [],
       domain: parsed.domain,
-      year: parsed.year || undefined,
-      achievements: parsed.achievements || []
+      year: yearOfStudy,
+      achievements: parsed.achievements || [],
+      experiences: parsed.experiences || [],
+      github_url: parsed.github_url,
+      linkedin_url: parsed.linkedin_url
     };
   } catch (error) {
     console.error('Error parsing Gemini response:', error);
     return {
+      name: '',
+      email: '',
       skills: [],
       domain: undefined,
       year: undefined,
-      achievements: []
+      achievements: [],
+      experiences: [],
+      github_url: undefined,
+      linkedin_url: undefined
     };
   }
 }

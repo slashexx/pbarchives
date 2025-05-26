@@ -16,6 +16,10 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '@supabase/supabase-js';
+import { Separator } from "@/components/ui/separator";
+import { Plus, Trash } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ParsedData {
   id: string;
@@ -25,6 +29,16 @@ interface ParsedData {
   domain?: string;
   year?: number;
   achievements: string[];
+  experiences: {
+    company: string;
+    role: string;
+    description: string;
+    start_date: string;
+    end_date: string | null;
+    is_current: boolean;
+  }[];
+  github_url?: string;
+  linkedin_url?: string;
 }
 
 const supabase = createClient(
@@ -44,6 +58,10 @@ export default function ConfirmPage() {
     email: "",
     domain: "",
     year_of_study: "",
+    github_url: "",
+    linkedin_url: "",
+    experiences: [] as ParsedData['experiences'],
+    achievements: [] as string[],
   });
 
   useEffect(() => {
@@ -59,18 +77,81 @@ export default function ConfirmPage() {
         domain: data.domain || '',
         year: data.year || undefined,
         achievements: data.achievements || [],
+        experiences: data.experiences || [],
+        github_url: data.github_url || '',
+        linkedin_url: data.linkedin_url || '',
       });
       setFormData({
         name: data.name || '',
         email: data.email || '',
         domain: data.domain || '',
         year_of_study: data.year?.toString() || '',
+        github_url: data.github_url ? (data.github_url.startsWith('http') ? data.github_url : `https://${data.github_url}`) : '',
+        linkedin_url: data.linkedin_url ? (data.linkedin_url.startsWith('http') ? data.linkedin_url : `https://${data.linkedin_url}`) : '',
+        experiences: data.experiences || [],
+        achievements: data.achievements || [],
       });
       setLoading(false);
     } else {
       router.push('/upload');
     }
   }, [router]);
+
+  const handleExperienceChange = (index: number, field: string, value: string | boolean) => {
+    setFormData(prev => ({
+      ...prev,
+      experiences: prev.experiences.map((exp, i) => 
+        i === index ? { ...exp, [field]: value } : exp
+      )
+    }));
+  };
+
+  const handleAchievementChange = (index: number, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: prev.achievements.map((achievement, i) => 
+        i === index ? value : achievement
+      )
+    }));
+  };
+
+  const addExperience = () => {
+    setFormData(prev => ({
+      ...prev,
+      experiences: [
+        ...prev.experiences,
+        {
+          company: '',
+          role: '',
+          description: '',
+          start_date: new Date().toISOString().split('T')[0],
+          end_date: null,
+          is_current: false
+        }
+      ]
+    }));
+  };
+
+  const removeExperience = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      experiences: prev.experiences.filter((_, i) => i !== index)
+    }));
+  };
+
+  const addAchievement = () => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: [...prev.achievements, '']
+    }));
+  };
+
+  const removeAchievement = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      achievements: prev.achievements.filter((_, i) => i !== index)
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,6 +178,22 @@ export default function ConfirmPage() {
       const memberData = await memberRes.json();
       if (!memberRes.ok) throw new Error(memberData.error || 'Failed to save member');
 
+      // 1.5. Save links (GitHub and LinkedIn)
+      const linksToSave = [];
+      if (formData.github_url) {
+        linksToSave.push({ name: 'GitHub', url: formData.github_url });
+      }
+      if (formData.linkedin_url) {
+        linksToSave.push({ name: 'LinkedIn', url: formData.linkedin_url });
+      }
+      if (linksToSave.length > 0) {
+        await fetch('/api/links', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: memberId, links: linksToSave }),
+        });
+      }
+
       // 2. Save skills
       if (parsedData?.skills?.length) {
         await fetch('/api/member-skills', {
@@ -106,7 +203,16 @@ export default function ConfirmPage() {
         });
       }
 
-      // 3. Save achievements
+      // 3. Save experiences
+      if (parsedData?.experiences?.length) {
+        await fetch('/api/experiences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ member_id: memberId, experiences: parsedData.experiences }),
+        });
+      }
+
+      // 4. Save achievements
       if (parsedData?.achievements?.length) {
         await fetch('/api/achievements', {
           method: 'POST',
@@ -152,57 +258,92 @@ export default function ConfirmPage() {
               Please review and update your information before creating your profile.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, name: e.target.value }))
-                }
-                required
-              />
+          <CardContent className="space-y-6">
+            {/* Basic Information */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Basic Information</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, name: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, email: e.target.value }))
+                    }
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="domain">Domain</Label>
+                  <Input
+                    id="domain"
+                    value={formData.domain}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, domain: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="year">Year of Study</Label>
+                  <Input
+                    id="year"
+                    type="number"
+                    min="1"
+                    max="5"
+                    value={4 - Number(formData.year_of_study)}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, year_of_study: e.target.value }))
+                    }
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="github_url">GitHub URL</Label>
+                  <Input
+                    id="github_url"
+                    type="url"
+                    value={formData.github_url}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, github_url: e.target.value }))
+                    }
+                    placeholder="https://github.com/username"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="linkedin_url">LinkedIn URL</Label>
+                  <Input
+                    id="linkedin_url"
+                    type="url"
+                    value={formData.linkedin_url}
+                    onChange={(e) =>
+                      setFormData((prev) => ({ ...prev, linkedin_url: e.target.value }))
+                    }
+                    placeholder="https://linkedin.com/in/username"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, email: e.target.value }))
-                }
-                required
-              />
-            </div>
+            <Separator />
 
-            <div className="space-y-2">
-              <Label htmlFor="domain">Domain</Label>
-              <Input
-                id="domain"
-                value={formData.domain}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, domain: e.target.value }))
-                }
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="year">Year of Study</Label>
-              <Input
-                id="year"
-                type="number"
-                min="1"
-                max="5"
-                value={formData.year_of_study}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, year_of_study: e.target.value }))
-                }
-              />
-            </div>
-
+            {/* Skills Section */}
             {parsedData?.skills && parsedData.skills.length > 0 && (
               <div className="space-y-2">
                 <Label>Skills</Label>
@@ -218,6 +359,138 @@ export default function ConfirmPage() {
                 </div>
               </div>
             )}
+
+            <Separator />
+
+            {/* Experiences Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Work Experience</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addExperience}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Experience
+                </Button>
+              </div>
+              <div className="space-y-4">
+                {formData.experiences.map((exp, index) => (
+                  <div key={index} className="p-4 bg-muted/50 rounded-lg space-y-4">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Company</Label>
+                            <Input
+                              value={exp.company}
+                              onChange={(e) => handleExperienceChange(index, 'company', e.target.value)}
+                              placeholder="Company name"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Role</Label>
+                            <Input
+                              value={exp.role}
+                              onChange={(e) => handleExperienceChange(index, 'role', e.target.value)}
+                              placeholder="Job title"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Description</Label>
+                          <Textarea
+                            value={exp.description}
+                            onChange={(e) => handleExperienceChange(index, 'description', e.target.value)}
+                            placeholder="Describe your responsibilities and achievements"
+                            rows={3}
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Start Date</Label>
+                            <Input
+                              type="date"
+                              value={exp.start_date}
+                              onChange={(e) => handleExperienceChange(index, 'start_date', e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>End Date</Label>
+                            <div className="flex gap-2">
+                              <Input
+                                type="date"
+                                value={exp.end_date || ''}
+                                onChange={(e) => handleExperienceChange(index, 'end_date', e.target.value)}
+                                disabled={exp.is_current}
+                              />
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={`current-${index}`}
+                                  checked={exp.is_current}
+                                  onCheckedChange={(checked) => 
+                                    handleExperienceChange(index, 'is_current', checked as boolean)
+                                  }
+                                />
+                                <Label htmlFor={`current-${index}`}>Current</Label>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeExperience(index)}
+                        className="ml-2"
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Achievements Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Achievements</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addAchievement}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Achievement
+                </Button>
+              </div>
+              <div className="space-y-2">
+                {formData.achievements.map((achievement, index) => (
+                  <div key={index} className="flex gap-2">
+                    <Input
+                      value={achievement}
+                      onChange={(e) => handleAchievementChange(index, e.target.value)}
+                      placeholder="Enter your achievement"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeAchievement(index)}
+                    >
+                      <Trash className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button

@@ -2,7 +2,7 @@ import { HeroSection } from '@/components/home/hero-section';
 import { FeaturesSection } from '@/components/home/features-section';
 
 export const metadata = {
-  title: "Upload Resume | Point Blank",
+  title: "Student discovery system | Point Blank",
   description: "Upload your resume to create or update your profile on Point Blank",
 };
 

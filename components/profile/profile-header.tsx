@@ -7,7 +7,7 @@ import { Github, Linkedin, Mail, Globe, LucideIcon } from "lucide-react";
 type LinkType = 'github' | 'linkedin' | 'email' | 'website';
 
 interface Link {
-  type: LinkType;
+  name: string;
   url: string;
 }
 
@@ -60,10 +60,10 @@ export function ProfileHeader({
         
         <div className="flex flex-wrap justify-center md:justify-start gap-2">
           {links.map((link) => {
-            const Icon = iconMap[link.type];
+            const Icon = iconMap[link.name?.toLowerCase?.() as LinkType] || Globe;
             return (
               <Button
-                key={link.type}
+                key={link.name}
                 variant="outline"
                 size="sm"
                 className="gap-2"
@@ -71,7 +71,7 @@ export function ProfileHeader({
               >
                 <a href={link.url} target="_blank" rel="noopener noreferrer">
                   <Icon className="h-4 w-4" />
-                  {link.type.charAt(0).toUpperCase() + link.type.slice(1)}
+                  {link.name?.charAt(0).toUpperCase() + link.name?.slice(1)}
                 </a>
               </Button>
             );
