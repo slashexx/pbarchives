@@ -45,6 +45,8 @@ export function ProfileHeader({
   links,
   isCurrentUser,
 }: ProfileHeaderProps) {
+  console.log('ProfileHeader props:', { name, email, pictureUrl, domain, yearOfStudy, links, isCurrentUser }); // Debug log
+  
   return (
     <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
       <Avatar className="h-32 w-32 border-4 border-background">

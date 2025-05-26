@@ -93,6 +93,9 @@ export const MemberService = {
       .select('*')
       .eq('id', id)
       .single();
+    
+    console.log('Fetched member data:', member); // Debug log
+    
     if (memberError || !member) return null;
 
     // Fetch skills
@@ -197,12 +200,16 @@ export const MemberService = {
   },
 
   async createMember(member: Omit<Member, 'id' | 'created_at' | 'updated_at'>) {
+    console.log('Creating member with data:', member); // Debug log
+    
     const { data, error } = await supabase
       .from('members')
       .insert([member])
       .select()
       .single();
-
+    
+    console.log('Member creation result:', { data, error }); // Debug log
+    
     if (error) throw error;
     return data;
   },
@@ -215,6 +222,21 @@ export const MemberService = {
       .select()
       .single();
 
+    if (error) throw error;
+    return data;
+  },
+
+  async upsertMember(member: Member) {
+    console.log('Upserting member with data:', member); // Debug log
+    
+    const { data, error } = await supabase
+      .from('members')
+      .upsert([member])
+      .select()
+      .single();
+    
+    console.log('Member upsert result:', { data, error }); // Debug log
+    
     if (error) throw error;
     return data;
   }

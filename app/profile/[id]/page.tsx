@@ -48,6 +48,8 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
     notFound();
   }
   
+  console.log('Member data:', member); // Debug log
+  
   // Fetch additional profile data
   const skills = await SkillService.getMemberSkills(params.id);
   const experiences = await ExperienceService.getMemberExperiences(params.id);

@@ -17,7 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from 'uuid';
 import { createClient } from '@supabase/supabase-js';
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash } from "lucide-react";
+import { Plus, Trash, Upload } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -53,6 +53,8 @@ export default function ConfirmPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [parsedData, setParsedData] = useState<ParsedData | null>(null);
+  const [profilePicture, setProfilePicture] = useState<File | null>(null);
+  const [picturePreview, setPicturePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -153,23 +155,62 @@ export default function ConfirmPage() {
     }));
   };
 
+  const handlePictureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          title: "Error",
+          description: "Profile picture must be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      setProfilePicture(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPicturePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
 
     try {
-      // Get the user id from localStorage
       const memberId = localStorage.getItem('user_id');
       if (!memberId) throw new Error('User ID not found');
+
+      let pictureUrl = '';
+      if (profilePicture) {
+        const fileExt = profilePicture.name.split('.').pop();
+        const fileName = `${memberId}-${Date.now()}.${fileExt}`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('profile-pictures')
+          .upload(fileName, profilePicture);
+
+        if (uploadError) throw new Error('Failed to upload profile picture');
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('profile-pictures')
+          .getPublicUrl(fileName);
+        
+        pictureUrl = publicUrl;
+      }
 
       // 1. Create or update member
       const memberPayload = {
         id: memberId,
-        name: formData.name,
-        email: formData.email,
-        domain: formData.domain,
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        domain: formData.domain.trim(),
         year_of_study: formData.year_of_study ? parseInt(formData.year_of_study) : null,
+        picture_url: pictureUrl,
       };
+      console.log('Saving member data:', memberPayload);
+      
       const memberRes = await fetch('/api/members', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -262,6 +303,41 @@ export default function ConfirmPage() {
             {/* Basic Information */}
             <div className="space-y-4">
               <h3 className="font-medium">Basic Information</h3>
+              
+              {/* Profile Picture Upload */}
+              <div className="flex items-start gap-4 mb-4">
+                <div className="flex-1">
+                  <Label htmlFor="profile-picture">Profile Picture</Label>
+                  <div className="mt-2 flex items-center gap-4">
+                    <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-dashed border-muted-foreground/25 hover:border-muted-foreground/50 transition-colors">
+                      {picturePreview ? (
+                        <img
+                          src={picturePreview}
+                          alt="Profile preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-muted">
+                          <Upload className="w-8 h-8 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <Input
+                        id="profile-picture"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePictureChange}
+                        className="cursor-pointer"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload a profile picture (max 5MB)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Name</Label>
