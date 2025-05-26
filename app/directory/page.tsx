@@ -146,8 +146,8 @@ export default function DirectoryPage() {
       );
   
   return (
-    <div className="container py-8">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+    <div className="container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 mb-10">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Developer Directory</h1>
           <p className="text-muted-foreground">
@@ -166,7 +166,7 @@ export default function DirectoryPage() {
         </div>
       </div>
       
-      <div className="mb-6">
+      <div className="mb-8">
         <SearchFilters allSkills={allSkills} domains={domains} years={years} />
       </div>
       
@@ -190,7 +190,7 @@ export default function DirectoryPage() {
           <p className="text-muted-foreground mt-1">Try adjusting your search criteria</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredMembers.map((member) => (
             <MemberCard
               key={member.id}
